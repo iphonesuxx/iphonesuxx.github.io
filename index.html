@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>My App</title>
+  <style>
+    body { font-family: system-ui, sans-serif; max-width: 600px; margin: 40px auto; padding: 0 20px; }
+    form { display: flex; gap: 8px; margin-bottom: 24px; }
+    input { flex: 1; padding: 10px; font-size: 16px; border: 1px solid #ccc; border-radius: 6px; }
+    button { padding: 10px 18px; font-size: 16px; background: #111; color: #fff; border: none; border-radius: 6px; cursor: pointer; }
+    button:hover { background: #333; }
+    ul { list-style: none; padding: 0; }
+    li { padding: 12px; border-bottom: 1px solid #eee; }
+    .error { color: #b91c1c; font-size: 14px; margin-bottom: 12px; }
+  </style>
+</head>
+<body>
+
+  <h1>Database Entries</h1>
+  <div id="errorBox" class="error"></div>
+
+  <form id="entryForm">
+    <input type="text" id="entryInput" placeholder="Write something to save..." required />
+    <button type="submit">Save</button>
+  </form>
+
+  <ul id="entriesList">Loading...</ul>
+
+  <script type="module">
+    import { createClient } from "https://esm.sh";
+
+    const supabaseUrl = "https://supabase.co";
+    const supabaseKey = "sb_publishable_IdlaJfWz1R3Onuf8fKbFfw_ur862_JV";
+    const supabase = createClient(supabaseUrl, supabaseKey);
+
+    const form = document.getElementById("entryForm");
+    const input = document.getElementById("entryInput");
+    const list = document.getElementById("entriesList");
+    const errorBox = document.getElementById("errorBox");
+
+    async function loadEntries() {
+      const { data, error } = await supabase
+        .from("entries")
+        .select("*")
+        .order("id", { ascending: false });
+
+      if (error) {
+        errorBox.textContent = "Error loading data: " + error.message;
+        list.innerHTML = "";
+        return;
+      }
+
+      errorBox.textContent = "";
+      list.innerHTML = "";
+      if (!data || data.length === 0) {
+        list.innerHTML = "<li>No entries yet. Add one above!</li>";
+        return;
+      }
+      data.forEach((row) => {
+        const li = document.createElement("li");
+        li.textContent = row.text;
+        list.appendChild(li);
+      });
+    }
+
+    form.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const text = input.value.trim();
+      if (!text) return;
+
+      const { error } = await supabase.from("entries").insert([{ text }]);
+      if (error) {
+        errorBox.textContent = "Error saving: " + error.message;
+        return;
+      }
+
+      input.value = "";
+      loadEntries();
+    });
+
+    loadEntries();
+  </script>
+</body>
+</html>
